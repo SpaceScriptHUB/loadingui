@@ -1,397 +1,110 @@
 
 
 task.spawn(function()
-local Players      = game:GetService("Players")
-local UserInput    = game:GetService("UserInputService")
-local RunService   = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local player       = Players.LocalPlayer
-local playerGui    = player:WaitForChild("PlayerGui")
+local Loading = Instance.new("ScreenGui")
+Loading.IgnoreGuiInset = true
+Loading.Parent = game:GetService("CoreGui")
 
+local Background = Instance.new("Frame")
+Background.Size = UDim2.new(1, 0, 1, 0)
+Background.Parent = Loading
 
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name           = "SnakeMinigameUI"
-screenGui.IgnoreGuiInset = true
-screenGui.DisplayOrder   = 1001  
-screenGui.ResetOnSpawn   = false
-screenGui.Parent         = playerGui
-
-local FRAME_W, FRAME_H = 480, 320
-local Y_DOWN = 120
-
-local frame = Instance.new("Frame")
-frame.Name     = "GameFrame"
-frame.Size     = UDim2.new(0, FRAME_W, 0, FRAME_H)
-frame.Position = UDim2.new(0.5, -FRAME_W/2, 0.5, -FRAME_H/2 + Y_DOWN)
-frame.BorderSizePixel = 0
-frame.Parent   = screenGui
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 16)
-
-
-local gradient = Instance.new("UIGradient", frame)
-gradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(70, 120, 200)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 160, 240)),
+local UIGradient = Instance.new("UIGradient")
+UIGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
 }
-gradient.Rotation = 90
+UIGradient.Parent = Background
 
-local score = 0
-local scoreLabel = Instance.new("TextLabel", frame)
-scoreLabel.Size               = UDim2.new(1,0,0,36)
-scoreLabel.Position           = UDim2.new(0,0,0,0)
-scoreLabel.BackgroundTransparency = 1
-scoreLabel.Text               = "Score: 0 🐭"
-scoreLabel.Font               = Enum.Font.FredokaOne
-scoreLabel.TextScaled         = true
-scoreLabel.TextColor3         = Color3.fromRGB(255,255,255)
+local Pattern = Instance.new("ImageLabel")
+Pattern.BackgroundTransparency = 1
+Pattern.Size = UDim2.new(1, 0, 1, 0)
+Pattern.Image = "rbxassetid://2151741365"
+Pattern.ImageTransparency = 0.5
+Pattern.ScaleType = Enum.ScaleType.Tile
+Pattern.TileSize = UDim2.new(0, 250, 0, 250)
+Pattern.Parent = Background
 
-local playArea = Instance.new("Frame", frame)
-playArea.Size             = UDim2.new(1, -24, 1, -64)
-playArea.Position         = UDim2.new(0, 12, 0, 44)
-playArea.BackgroundColor3 = Color3.fromRGB(20,20,30)
-Instance.new("UICorner", playArea).CornerRadius = UDim.new(0,10)
+local Title = Instance.new("TextLabel")
+Title.AnchorPoint = Vector2.new(0.5, 0.5)
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0.5, 0, 0.3, 0)
+Title.Size = UDim2.new(0.3, 0, 0.3, 0)
+Title.Font = Enum.Font.GothamBlack
+Title.Text = "🌴 GROW A GARDEN 🌴"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextScaled = true
+Title.Parent = Background
 
-local GRID = 18
-local COLS = math.floor(playArea.AbsoluteSize.X / GRID)
-local ROWS = math.floor(playArea.AbsoluteSize.Y / GRID)
+local Percent = Instance.new("TextLabel")
+Percent.AnchorPoint = Vector2.new(0.5, 0.5)
+Percent.BackgroundTransparency = 1
+Percent.Position = UDim2.new(0.5, 0, 0.5, 0)
+Percent.Size = UDim2.new(0.8, 0, 0.04, 0)
+Percent.Font = Enum.Font.GothamSemibold
+Percent.Text = "Script Loading Please Wait for a While"
+Percent.TextColor3 = Color3.fromRGB(255, 255, 255)
+Percent.TextXAlignment = Enum.TextXAlignment.Center
+Percent.TextScaled = true
+Percent.Parent = Background
 
-local snake = {}
-local dir   = Vector2.new(1,0)
-local appleCell
-local alive = true
-local restartBtn
+local Bar = Instance.new("Frame")
+Bar.AnchorPoint = Vector2.new(0.5, 0.5)
+Bar.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Bar.BackgroundTransparency = 0.5
+Bar.Position = UDim2.new(0.5, 0, 0.56, 0)
+Bar.Size = UDim2.new(0.5, 0, 0.065, 0)
+Bar.Parent = Background
 
-local function makeCell(x,y, size, parent)
-    local c = Instance.new("Frame")
-    c.Size             = UDim2.new(0, size, 0, size)
-    c.Position         = UDim2.new(0, x*size, 0, y*size)
-    c.BackgroundColor3 = Color3.fromRGB(0,170,0)
-    c.BorderSizePixel  = 0
-    c.Parent           = parent
-    Instance.new("UICorner", c).CornerRadius = UDim.new(1,0)
-    return c
-end
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = Bar
 
-local function spawnApple()
-    if appleCell then appleCell:Destroy() end
-    local x,y
-    repeat
-        x = math.random(0, COLS-1)
-        y = math.random(0, ROWS-1)
-    until not table.find(snake, Vector2.new(x,y))
-    appleCell = Instance.new("TextLabel")
-    appleCell.Size               = UDim2.new(0, GRID, 0, GRID)
-    appleCell.Position           = UDim2.new(0, x*GRID, 0, y*GRID)
-    appleCell.BackgroundTransparency = 1
-    appleCell.Text               = "🐭"
-    appleCell.TextScaled         = true
-    appleCell.Parent             = playArea
-end
+local Load = Instance.new("Frame")
+Load.Name = "LoadBar"
+Load.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Load.Position = UDim2.new(0, 0, 0, 0)
+Load.Size = UDim2.new(0, 0, 1, 0)
+Load.Parent = Bar
 
-local function drawSnake()
-    for _,c in ipairs(playArea:GetChildren()) do
-        if c.Name=="SnakeCell" or c.Name=="SnakeHead" then c:Destroy() end
-    end
-    for i=2,#snake do
-        local v = snake[i]
-        local cell = makeCell(v.X, v.Y, GRID, playArea)
-        cell.Name = "SnakeCell"
-    end
-    local headPos = snake[1]
-    local head = Instance.new("TextLabel")
-    head.Size             = UDim2.new(0, GRID, 0, GRID)
-    head.Position         = UDim2.new(0, headPos.X*GRID, 0, headPos.Y*GRID)
-    head.BackgroundTransparency = 1
-    head.Text             = "🐲"
-    head.TextScaled       = true
-    head.Name             = "SnakeHead"
-    head.Parent           = playArea
-end
+local UICorner2 = Instance.new("UICorner")
+UICorner2.CornerRadius = UDim.new(0, 10)
+UICorner2.Parent = Load
 
-local function initGame()
-    score = 0
-    scoreLabel.Text = "Score: 0 🐭"
-    dir = Vector2.new(1,0)
-    alive = true
-    for _,c in ipairs(playArea:GetChildren()) do
-        c:Destroy()
-    end
-    snake = { Vector2.new(math.floor(COLS/2), math.floor(ROWS/2)) }
-    drawSnake()
-    spawnApple()
-    if restartBtn then
-        restartBtn:Destroy()
-        restartBtn = nil
-    end
-    gradient.Enabled = true
+local PercentOnBar = Instance.new("TextLabel")
+PercentOnBar.AnchorPoint = Vector2.new(0.5, 0.5)
+PercentOnBar.BackgroundTransparency = 1
+PercentOnBar.Position = UDim2.new(0.5, 0, 0.65, 0)
+PercentOnBar.Size = UDim2.new(1, 0, 0.05, 0)
+PercentOnBar.Font = Enum.Font.GothamSemibold
+PercentOnBar.Text = "0%"
+PercentOnBar.TextColor3 = Color3.fromRGB(255, 255, 255)
+PercentOnBar.TextScaled = true
+PercentOnBar.Parent = Background
 
-    startGameLoop()
-end
+local Link = Instance.new("TextLabel")
+Link.AnchorPoint = Vector2.new(0.5, 0.5)
+Link.BackgroundTransparency = 1
+Link.Position = UDim2.new(0.5, 0, 0.56, 0)
+Link.Size = UDim2.new(0.3, 0, 0.02, 0)
+Link.Font = Enum.Font.SourceSansBold
+Link.Text = "discord.gg/darkscripts"
+Link.TextColor3 = Color3.fromRGB(150, 150, 150) 
+Link.TextScaled = false
+Link.TextSize = 14
+Link.Parent = Background
 
-function startGameLoop()
-    alive = true
-    spawn(function()
-        while alive do
-            RunService.Heartbeat:Wait()
-            wait(0.22)
-            local head = snake[1]
-            local nx = (head.X + dir.X) % COLS
-            local ny = (head.Y + dir.Y) % ROWS
-            local newH = Vector2.new(nx,ny)
-            for i=2,#snake do
-                if snake[i]==newH then alive = false break end
-            end
-            if not alive then
-                gradient.Enabled = false
-                frame.BackgroundColor3 = Color3.fromRGB(100,20,20)
-                restartBtn = Instance.new("TextButton", frame)
-                restartBtn.Size = UDim2.new(0, 200, 0, 50)
-                restartBtn.Position = UDim2.new(0.5, -100, 0.5, 0)
-                restartBtn.Text = "Try Again"
-                restartBtn.Font = Enum.Font.FredokaOne
-                restartBtn.TextScaled = true
-                restartBtn.BackgroundColor3 = Color3.fromRGB(255,255,255)
-                restartBtn.TextColor3 = Color3.fromRGB(30,30,30)
-                Instance.new("UICorner", restartBtn).CornerRadius = UDim.new(0,12)
-                restartBtn.MouseButton1Click:Connect(function()
-                    frame.BackgroundColor3 = Color3.fromRGB(70, 120, 200)
-                    initGame()
-                end)
-                break
-            end
-            table.insert(snake,1,newH)
-            local ax = appleCell.Position.X.Offset/GRID
-            local ay = appleCell.Position.Y.Offset/GRID
-            if nx==ax and ny==ay then
-                score += 1
-                scoreLabel.Text = "Score: "..score.." 🐭"
-                spawnApple()
-            else
-                table.remove(snake)
-            end
-            drawSnake()
+local TweenService = game:GetService("TweenService")
+local tweenInfo = TweenInfo.new(180, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+TweenService:Create(Load, tweenInfo, {Size = UDim2.new(1, 0, 1, 0)}):Play()
+
+task.spawn(function()
+    for i = 0, 100 do
+        PercentOnBar.Text = i .. "%"
+        if i < 100 then
+            task.wait(180 / 100)
         end
-    end)
-end
-
-UserInput.InputBegan:Connect(function(inp, gp)
-    if gp then return end
-    local k = inp.KeyCode
-    if k==Enum.KeyCode.Up    and dir~=Vector2.new(0,1)  then dir=Vector2.new(0,-1)
-    elseif k==Enum.KeyCode.Down  and dir~=Vector2.new(0,-1) then dir=Vector2.new(0,1)
-    elseif k==Enum.KeyCode.Left  and dir~=Vector2.new(1,0)  then dir=Vector2.new(-1,0)
-    elseif k==Enum.KeyCode.Right and dir~=Vector2.new(-1,0) then dir=Vector2.new(1,0)
     end
 end)
-
-local ctrl = Instance.new("Frame", screenGui)
-ctrl.Size                 = UDim2.new(0, 160, 0, 160)
-ctrl.Position             = UDim2.new(0.5, FRAME_W/2 + 20, 0.5, -80 + Y_DOWN)
-ctrl.BackgroundTransparency = 1
-
-local arrowIcons = {Up = "⬆️", Down = "⬇️", Left = "⬅️", Right = "➡️"}
-for name, info in pairs({
-    Up    = {pos = UDim2.new(0.35, 0, 0, 0),    vec = Vector2.new(0, -1)},
-    Down  = {pos = UDim2.new(0.35, 0, 0.65, 0), vec = Vector2.new(0, 1)},
-    Left  = {pos = UDim2.new(0, 0, 0.35, 0),    vec = Vector2.new(-1, 0)},
-    Right = {pos = UDim2.new(0.65, 0, 0.35, 0), vec = Vector2.new(1, 0)},
-}) do
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.3, 0, 0.3, 0)
-    btn.Position = info.pos
-    btn.Text = arrowIcons[name]
-    btn.Font = Enum.Font.FredokaOne
-    btn.TextScaled = true
-    btn.BackgroundColor3 = Color3.new(1,1,1)
-    btn.BackgroundTransparency = 1
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(1, 0)
-    btn.Parent = ctrl
-
-    btn.MouseButton1Click:Connect(function()
-        if info.vec + dir ~= Vector2.new(0, 0) then
-            dir = info.vec
-        end
-    end)
-end
-
-initGame()
-
-
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-
-local loadingGui = Instance.new("ScreenGui")
-loadingGui.Name           = "LoadingUI"
-loadingGui.IgnoreGuiInset = true
-loadingGui.DisplayOrder   = 1000
-loadingGui.ResetOnSpawn   = false
-loadingGui.Parent         = game.CoreGui
-
-local loadingFrame = Instance.new("Frame")
-loadingFrame.Size             = UDim2.new(0.3, 0, 0.1, 0)
-loadingFrame.Position         = UDim2.new(0.5, -150, 0.5, -50)
-loadingFrame.BackgroundColor3 = Color3.fromRGB(255,255,255)
-loadingFrame.Parent           = loadingGui
-
-local skyFrame = Instance.new("Frame")
-skyFrame.Size            = UDim2.new(1, 0, 0.7, 0)
-skyFrame.Position        = UDim2.new(0, 0, 0, 0)
-skyFrame.BackgroundColor3 = Color3.fromRGB(135, 206, 235)
-skyFrame.BorderSizePixel = 0
-skyFrame.Parent          = loadingGui
-
-local skyGrad = Instance.new("UIGradient", skyFrame)
-skyGrad.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0,   Color3.fromRGB(135, 206, 235)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(70, 130, 180)),
-    ColorSequenceKeypoint.new(1,   Color3.fromRGB(25, 25, 112)),
-}
-skyGrad.Rotation = 90
-
-local sun = Instance.new("Frame")
-sun.Size             = UDim2.new(0, 120, 0, 120)
-sun.Position         = UDim2.new(1, -140, 0, 20)
-sun.BackgroundColor3 = Color3.fromRGB(255, 223, 0)
-sun.BorderSizePixel  = 0
-sun.Parent           = skyFrame
-Instance.new("UICorner", sun).CornerRadius = UDim.new(0.5, 0)
-
-local ground = Instance.new("Frame")
-ground.Size             = UDim2.new(1, 0, 0.3, 0)
-ground.Position         = UDim2.new(0, 0, 0.7, 0)
-ground.BackgroundColor3 = Color3.fromRGB(34, 139, 34)
-ground.BorderSizePixel  = 0
-ground.Parent           = loadingGui
-
-local trees = {
-    { type = "pine", x = 0.1, y = 0.75, scale = 1.2, trunkW = 10 },
-    { type = "oak",  x = 0.9, y = 0.8,  scale = 1.0, trunkW = 14 },
-    { type = "pine", x = 0.3, y = 0.9,  scale = 1.3, trunkW = 8  },
-    { type = "oak",  x = 0.75, y = 0.85, scale = 1.1, trunkW = 12 },
-}
-
-for _, info in ipairs(trees) do
-    local tHeight = 80 * info.scale
-    local trunk = Instance.new("Frame")
-    trunk.Size             = UDim2.new(0, info.trunkW, 0, tHeight)
-    trunk.Position         = UDim2.new(info.x, -info.trunkW/2, info.y, -tHeight)
-    trunk.BackgroundColor3 = Color3.fromRGB(101, 67, 33)
-    trunk.BorderSizePixel  = 0
-    trunk.Parent           = loadingGui
-    Instance.new("UICorner", trunk).CornerRadius = UDim.new(0, info.trunkW/2)
-    if info.type == "pine" then
-        for i = 1, 3 do
-            local width = 120 * info.scale - (i-1)*25*info.scale
-            local layer = Instance.new("Frame")
-            layer.Size             = UDim2.new(0, width, 0, width * 0.5)
-            layer.Position         = UDim2.new(info.x, -width/2, info.y, -tHeight - (i-1)*(width*0.4))
-            layer.BackgroundColor3 = Color3.fromRGB(20, math.random(80,140), 20)
-            layer.BorderSizePixel  = 0
-            layer.Parent           = loadingGui
-            local grad = Instance.new("UIGradient", layer)
-            grad.Color = ColorSequence.new{
-                ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 50, 0)),
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(34, 139, 34)),
-            }
-        end
-    else
-        for i = 1, 2 do
-            local cSize = 100 * info.scale - (i-1)*30*info.scale
-            local canopy = Instance.new("Frame")
-            canopy.Size             = UDim2.new(0, cSize, 0, cSize)
-            canopy.Position         = UDim2.new(info.x, -cSize/2, info.y, -tHeight - cSize/2 - (i-1)*30*info.scale)
-            canopy.BackgroundColor3 = Color3.fromRGB(math.random(20,60), math.random(80,140), math.random(20,60))
-            canopy.BorderSizePixel  = 0
-            canopy.Parent           = loadingGui
-            Instance.new("UICorner", canopy).CornerRadius = UDim.new(0.5, 0)
-            local grad = Instance.new("UIGradient", canopy)
-            grad.Color = ColorSequence.new{
-                ColorSequenceKeypoint.new(0, Color3.fromRGB(34, 100, 34)),
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(50, 205, 50)),
-            }
-        end
-    end
-end
-
-local barBg = Instance.new("Frame")
-barBg.Size             = UDim2.new(0.6, 0, 0, 50)
-barBg.Position         = UDim2.new(0.5, 0, 0.5, 0)
-barBg.AnchorPoint      = Vector2.new(0.5, 0.5)
-barBg.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
-barBg.BorderSizePixel  = 0
-barBg.Parent           = skyFrame
-Instance.new("UICorner", barBg).CornerRadius = UDim.new(0.25, 0)
-
-
-local discordInsideBar = Instance.new("TextLabel")
-discordInsideBar.Size                    = UDim2.new(0.3, 0, 1, 0)
-discordInsideBar.Position                = UDim2.new(0.5, 0, 0.5, 0)
-discordInsideBar.AnchorPoint             = Vector2.new(0.5, 0.5)
-discordInsideBar.BackgroundTransparency = 1
-discordInsideBar.RichText                = true
-discordInsideBar.Text                    = "discord.gg/QvZXJ6eTfU"
-discordInsideBar.Font                    = Enum.Font.SourceSansBold
-discordInsideBar.TextScaled              = true
-discordInsideBar.TextColor3              = Color3.fromRGB(255, 0, 0)
-discordInsideBar.TextStrokeColor3        = Color3.fromRGB(0, 0, 0)
-discordInsideBar.TextStrokeTransparency  = 0
-discordInsideBar.Parent                  = barBg
-discordInsideBar.ZIndex                  = 10
-
-local waitLabel = Instance.new("TextLabel")
-waitLabel.Size               = UDim2.new(0.6,0,0,30)
-waitLabel.Position           = UDim2.new(0.5,0,0.5,-40)
-waitLabel.AnchorPoint        = Vector2.new(0.5,1)
-waitLabel.BackgroundTransparency = 1
-waitLabel.RichText           = true
-waitLabel.Text               = "⚠️ Please wait Script Loading! ⚠️"
-waitLabel.Font               = Enum.Font.SourceSansBold
-waitLabel.TextScaled         = true
-waitLabel.TextColor3         = Color3.fromRGB(250,250,20)
-waitLabel.Parent             = skyFrame
-
-local topWarning = Instance.new("TextLabel")
-topWarning.Size = UDim2.new(1, 0, 0, 40)
-topWarning.Position = UDim2.new(0.5, 0, 0, 5)
-topWarning.AnchorPoint = Vector2.new(0.5, 0)
-topWarning.BackgroundTransparency = 1
-topWarning.Text = "⚠️ Sorry for the wait! Anti-cheat bypass needs a few minutes to unblock the script ⚠️"
-topWarning.Font = Enum.Font.SourceSansBold
-topWarning.TextScaled = true
-topWarning.TextColor3 = Color3.fromRGB(255, 255, 0)
-topWarning.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-topWarning.TextStrokeTransparency = 0
-topWarning.Parent = skyFrame
-topWarning.ZIndex = 10
-
-local percentText = Instance.new("TextLabel")
-percentText.Size               = UDim2.new(0, 100, 0, 30)
-percentText.Position           = UDim2.new(0.5, 0, 0.5, 40)
-percentText.AnchorPoint        = Vector2.new(0.5, 0)
-percentText.BackgroundTransparency = 1
-percentText.TextColor3         = Color3.fromRGB(255,255,255)
-percentText.Font               = Enum.Font.SourceSansBold
-percentText.TextScaled         = true
-percentText.Text               = "0%"
-percentText.Parent             = skyFrame
-
-local barFill = Instance.new("Frame")
-barFill.Size             = UDim2.new(0, 0, 1, 0)
-barFill.BackgroundColor3 = Color3.fromRGB(0, 176, 255)
-barFill.BorderSizePixel  = 0
-barFill.Parent           = barBg
-Instance.new("UICorner", barFill).CornerRadius = UDim.new(0.25, 0)
-
-for i = 0, 100 do
-    local alpha = i / 100
-    local tween = TweenService:Create(barFill, TweenInfo.new(0.12, Enum.EasingStyle.Linear), {Size = UDim2.new(alpha, 0, 1, 0)})
-    tween:Play()
-    percentText.Text = i .. "%"
-    task.wait(2) 
-end
 
 end)
