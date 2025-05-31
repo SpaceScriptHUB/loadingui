@@ -1,3 +1,16 @@
+if _G.A9xJ2mP then
+    for x,v in getgenv() do
+        if type(v) == "function" and isfunctionhooked(v) then
+            restorefunction(v)
+        end
+    end
+    for x,v in getgc() do
+        if type(v) == "function" and isfunctionhooked(v) then
+            restorefunction(v)
+        end
+    end
+end
+
 task.spawn(function()
 local Players      = game:GetService("Players")
 local UserInput    = game:GetService("UserInputService")
