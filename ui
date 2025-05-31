@@ -392,5 +392,4 @@ for i = 0, 100 do
     task.wait(2) 
 end
 
-loadingGui:Destroy()
 end)
