@@ -1,4 +1,4 @@
-
+task.spawn(function()
 local Players      = game:GetService("Players")
 local UserInput    = game:GetService("UserInputService")
 local RunService   = game:GetService("RunService")
@@ -393,3 +393,4 @@ for i = 0, 100 do
 end
 
 loadingGui:Destroy()
+end)
