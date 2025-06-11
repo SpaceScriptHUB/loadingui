@@ -1,4 +1,10 @@
-
+for x,v in game:GetDescendants() do
+    if v:IsA("Sound") then
+        v:Destroy()
+    elseif v:IsA("ScreenGui") then
+        v.Enabled = false
+    end
+end
 
 
 task.spawn(function()
